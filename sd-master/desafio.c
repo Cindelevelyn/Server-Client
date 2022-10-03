@@ -1,11 +1,6 @@
-// Server side C/C++ program to demonstrate Socket
-// programming
-#include <netinet/in.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include <stdlib.h>
 
 typedef struct cont
 {
@@ -14,64 +9,19 @@ typedef struct cont
     int idade;
 } Contato;
 
+int exibeMenu();
 int getFileSize();
+void buscarContato(FILE *fp);
+void getContato(Contato *contato);
+void exibeContato(Contato *contato);
+void exibeContatos(FILE *fp);
 void insertContato(Contato contato, FILE *fp);
 
-
-int main(int argc, char const *argv[])
+int main()
 {
-    Contato contato;
     FILE *fp;
-
-    int server_fd, new_socket, valread, readOp, op, sz;
-    struct sockaddr_in address;
-    int opt = 1;
-    int addrlen = sizeof(address);
-    // char buffer[1024] = { 0 };
-    char hello[1024];
-    strcpy(hello, "Hello from server");
-
-    // Creating socket file descriptor
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
-    {
-        perror("socket failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // Forcefully attaching socket to the port 8080
-    if (setsockopt(server_fd, SOL_SOCKET,
-                   SO_REUSEADDR | SO_REUSEPORT, &opt,
-                   sizeof(opt)))
-    {
-        perror("setsockopt");
-        exit(EXIT_FAILURE);
-    }
-
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(atoi(argv[1]));
-
-    // Forcefully attaching socket to the port 8080
-    if (bind(server_fd, (struct sockaddr *)&address,
-             sizeof(address)) < 0)
-    {
-        perror("bind failed");
-        exit(EXIT_FAILURE);
-    }
-    if (listen(server_fd, 3) < 0)
-    {
-        perror("listen");
-        exit(EXIT_FAILURE);
-    }
-    if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
-                             (socklen_t *)&addrlen)) < 0)
-    {
-        perror("accept");
-        exit(EXIT_FAILURE);
-    }
-
-    /*ARQUIVOOOOOOOOOOOOO*/
-
+    Contato contato;
+    int op, sz;
     fp = fopen("dados.dat", "rb+");
 
     if (fp == NULL)
@@ -84,36 +34,31 @@ int main(int argc, char const *argv[])
         }
     }
 
-    /*-------------------------------*/
-
-    /*MENUUUUUUUUUUUUUUUUUUU*/
-
     do
     {
-        readOp = read(new_socket, &op, sizeof(op));
-
+        op = exibeMenu();
         if (op != 4)
         {
             switch (op)
             {
             case 1:
-                valread = read(new_socket, &contato, sizeof(contato));
+                getContato(&contato);
                 sz = getFileSize(fp);
                 if (sz == 0)
                 {
-                    fwrite(&contato, sizeof(contato), 1, fp);
-                    fflush(fp);
+                    fwrite(&contato, sizeof(Contato), 1, fp);
                 }
                 else
                 {
                     insertContato(contato, fp);
                 }
+
                 break;
             case 2:
-                send(new_socket, &fp, sizeof(fp), 0);
+                exibeContatos(fp);
                 break;
             case 3:
-                send(new_socket, &fp, sizeof(fp), 0);
+                buscarContato(fp);
                 break;
             case 4:
                 break;
@@ -121,13 +66,23 @@ int main(int argc, char const *argv[])
                 printf("\nOpcao invalida!!!");
             }
         }
+
     } while (op != 4);
 
-    close(new_socket);
-    
-    // closing the listening socket
-    shutdown(server_fd, SHUT_RDWR);
+    fclose(fp);
     return 0;
+}
+
+int exibeMenu()
+{
+    system("clear");
+    int op;
+    printf("\n1-) Cadastrar novo contato");
+    printf("\n2-) Exibir todos os contatos");
+    printf("\n3-) Buscar contato por nome");
+    printf("\n4-) Sair\n");
+    scanf("%d", &op);
+    return op;
 }
 
 int getFileSize(FILE *fp)
@@ -140,6 +95,44 @@ int getFileSize(FILE *fp)
     return sz;
 }
 
+void buscarContato(FILE *fp)
+{
+    char nome[100];
+    printf("\nDigite o nome: ");
+    scanf(" %100[0-9a-zA-Z ]", nome);
+    Contato aux;
+    rewind(fp);
+    while (fread(&aux, sizeof(Contato), 1, fp))
+    {
+        if (strcmp(aux.nome, nome) == 0)
+        {
+            exibeContato(&aux);
+        }
+    }
+    printf("\nDigite qualquer coisa para voltar...");
+    getchar();
+    getchar();
+}
+
+void getContato(Contato *contato)
+{
+    printf("\nDigite o nome: ");
+    scanf(" %100[0-9a-zA-Z ]", contato->nome);
+    printf("\nDigite o endereco: ");
+    scanf(" %100[0-9a-zA-Z ]", contato->endereco);
+    printf("\nDigite a idade: ");
+    scanf("%d", &contato->idade);
+    printf("\nDigite qualquer coisa para voltar...");
+    getchar();
+    getchar();
+}
+
+void exibeContato(Contato *contato)
+{
+    printf("\nNome: %s", contato->nome);
+    printf("\nEndereco: %s", contato->endereco);
+    printf("\n%d\n", contato->idade);
+}
 
 void insertContato(Contato c, FILE *fp)
 {
@@ -151,7 +144,6 @@ void insertContato(Contato c, FILE *fp)
     if ((nR = fread(&cAux, sizeof(Contato), 1, fp)) == 0)
     {
         fwrite(&c, sizeof(Contato), 1, fp);
-        fflush(fp);
         return;
     }
     rewind(fp);
@@ -173,7 +165,6 @@ void insertContato(Contato c, FILE *fp)
     if (achei == 0)
     {
         fwrite(&c, sizeof(Contato), 1, fp);
-        fflush(fp);
     }
     else
     { // senao, devo fazer o shift
@@ -189,4 +180,17 @@ void insertContato(Contato c, FILE *fp)
     }
 
     return;
+}
+
+void exibeContatos(FILE *fp)
+{
+    Contato aux;
+    rewind(fp);
+    while (fread(&aux, sizeof(Contato), 1, fp))
+    {
+        exibeContato(&aux);
+    }
+    printf("\nDigite qualquer coisa para voltar...");
+    getchar();
+    getchar();
 }

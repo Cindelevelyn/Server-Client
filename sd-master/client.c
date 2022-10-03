@@ -16,9 +16,9 @@ typedef struct cont
 
 int exibeMenu();
 void getContato(Contato *contato);
-
-
-
+void exibeContato(Contato *contato);
+void exibeContatos(FILE *fp);
+void buscarContato(FILE *fp);
 
 int main(int argc, char const *argv[])
 {
@@ -60,6 +60,21 @@ int main(int argc, char const *argv[])
     }
 
     int op;
+    FILE *fp;
+
+    fp = fopen("dados.dat", "rb+");
+
+    if (fp == NULL)
+    {
+        fp = fopen("dados.dat", "wb+");
+        if (fp == NULL)
+        {
+            printf("\nErro na criacao do arquivo!");
+            return 1;
+        }
+    }
+
+    int leitura;
 
     /*MENU PORRA*/
     do
@@ -70,15 +85,19 @@ int main(int argc, char const *argv[])
             switch (op)
             {
             case 1:
-                getContato(&contato);
                 send(sock, &op, sizeof(op), 0);
+                getContato(&contato);
                 send(sock, &contato, sizeof(contato), 0);
                 break;
             case 2:
                 send(sock, &op, sizeof(op), 0);
+                read(sock, fp, sizeof(fp));
+                exibeContatos(fp);
                 break;
             case 3:
                 send(sock, &op, sizeof(op), 0);
+                read(sock, fp, sizeof(fp));
+                buscarContato(fp);
                 break;
             case 4:
                 break;
@@ -88,13 +107,6 @@ int main(int argc, char const *argv[])
         }
 
     } while (op != 4);
-
-    /*SOCORRO DEUS*/
-
-    //send(sock, &contato, sizeof(contato), 0);
-    //printf("Hello struct sent\n");
-    // valread = read(sock, buffer, sizeof(buffer));
-    // printf("%s\n", buffer);
 
     // closing the connected socket
     close(client_fd);
@@ -121,6 +133,51 @@ void getContato(Contato *contato)
     scanf(" %100[0-9a-zA-Z ]", contato->endereco);
     printf("\nDigite a idade: ");
     scanf("%d", &contato->idade);
+    printf("\nDigite qualquer coisa para voltar...");
+    getchar();
+    getchar();
+}
+
+void exibeContato(Contato *contato)
+{
+    printf("\nNome: %s", contato->nome);
+    printf("\nEndereco: %s", contato->endereco);
+    printf("\n%d\n", contato->idade);
+}
+
+void exibeContatos(FILE *fp)
+{
+    Contato aux;
+    rewind(fp);
+    while (fread(&aux, sizeof(Contato), 1, fp))
+    {
+        exibeContato(&aux);
+    }
+    printf("\nDigite qualquer coisa para voltar...");
+    getchar();
+    getchar();
+}
+
+void buscarContato(FILE *fp)
+{
+    char nome[100];
+    printf("\nDigite o nome: ");
+    scanf(" %100[0-9a-zA-Z ]", nome);
+    Contato aux;
+    rewind(fp);
+    int achou = 0;
+    while (fread(&aux, sizeof(Contato), 1, fp))
+    {
+        if (strcmp(aux.nome, nome) == 0)
+        {
+            exibeContato(&aux);
+            achou = 1;
+        }
+    }
+    if(achou == 0)
+    {
+        printf("Não há clientes com esse nome...");
+    }
     printf("\nDigite qualquer coisa para voltar...");
     getchar();
     getchar();
