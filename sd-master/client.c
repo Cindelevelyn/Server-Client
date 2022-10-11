@@ -76,7 +76,7 @@ int main(int argc, char const *argv[])
 
     int leitura;
 
-    /*MENU PORRA*/
+    /*MENU*/
     do
     {
         op = exibeMenu();
