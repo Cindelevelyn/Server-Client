@@ -6,6 +6,9 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <semaphore.h>
+
 
 typedef struct cont
 {
@@ -24,10 +27,11 @@ int main(int argc, char const *argv[])
 {
 
     Contato contato;
+    pthread_t threads;
 
-    stpcpy(contato.endereco, "Zanete Dantte");
-    strcpy(contato.nome, "Cintra");
-    contato.idade = 23;
+    // stpcpy(contato.endereco, "Zanete Dantte");
+    // strcpy(contato.nome, "Cintra");
+    // contato.idade = 23;
 
     int sock = 0, valread, client_fd;
     struct sockaddr_in serv_addr;

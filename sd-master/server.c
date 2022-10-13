@@ -6,6 +6,68 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <semaphore.h>
+#include <pthread.h>
+
+// variaveis do semaforo
+
+sem_t x, y;
+pthread_t threads;
+pthread_t writerthreads[100];
+pthread_t readerthreads[100];
+int readercount = 0;
+
+// função para ler
+void *reader(void *param)
+{
+    // Lock the semaphore
+    sem_wait(&x);
+    readercount++;
+
+    if (readercount == 1)
+        sem_wait(&y);
+
+    // Unlock the semaphore
+    sem_post(&x);
+
+    printf("\n%d reader is inside",
+           readercount);
+
+    sleep(5);
+
+    // Lock the semaphore
+    sem_wait(&x);
+    readercount--;
+
+    if (readercount == 0)
+    {
+        sem_post(&y);
+    }
+
+    // Lock the semaphore
+    sem_post(&x);
+
+    printf("\n%d Reader is leaving",
+           readercount + 1);
+    pthread_exit(NULL);
+}
+
+// função para escrever
+void *writer(void *param)
+{
+    printf("\nWriter is trying to enter");
+
+    // Lock the semaphore
+    sem_wait(&y);
+
+    printf("\nWriter has entered");
+
+    // Unlock the semaphore
+    sem_post(&y);
+
+    printf("\nWriter is leaving");
+    pthread_exit(NULL);
+}
 
 typedef struct cont
 {
@@ -16,7 +78,6 @@ typedef struct cont
 
 int getFileSize();
 void insertContato(Contato contato, FILE *fp);
-
 
 int main(int argc, char const *argv[])
 {
@@ -52,8 +113,7 @@ int main(int argc, char const *argv[])
     address.sin_port = htons(atoi(argv[1]));
 
     // Forcefully attaching socket to the port 8080
-    if (bind(server_fd, (struct sockaddr *)&address,
-             sizeof(address)) < 0)
+    if (bind(server_fd, (struct sockaddr *)&address,sizeof(address)) < 0)
     {
         perror("bind failed");
         exit(EXIT_FAILURE);
@@ -63,15 +123,16 @@ int main(int argc, char const *argv[])
         perror("listen");
         exit(EXIT_FAILURE);
     }
-    if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
-                             (socklen_t *)&addrlen)) < 0)
+    if ((new_socket = accept(server_fd, (struct sockaddr *)&address,(socklen_t *)&addrlen)) < 0)
     {
         perror("accept");
         exit(EXIT_FAILURE);
     }
 
-    /*ARQUIVOOOOOOOOOOOOO*/
+    pthread_t threads[100]; // array para as threads
+    int i=0;
 
+    /*ARQUIVO*/
     fp = fopen("dados.dat", "rb+");
 
     if (fp == NULL)
@@ -86,8 +147,7 @@ int main(int argc, char const *argv[])
 
     /*-------------------------------*/
 
-    /*MENUUUUUUUUUUUUUUUUUUU*/
-
+    /*MENU*/
     do
     {
         readOp = read(new_socket, &op, sizeof(op));
@@ -97,6 +157,7 @@ int main(int argc, char const *argv[])
             switch (op)
             {
             case 1:
+                pthread_create(&readerthreads[i++], NULL,reader, &new_socket);
                 valread = read(new_socket, &contato, sizeof(contato));
                 sz = getFileSize(fp);
                 if (sz == 0)
@@ -110,9 +171,11 @@ int main(int argc, char const *argv[])
                 }
                 break;
             case 2:
+                pthread_create(&readerthreads[i++], NULL,reader, &new_socket);
                 send(new_socket, &fp, sizeof(fp), 0);
                 break;
             case 3:
+                pthread_create(&readerthreads[i++], NULL,reader, &new_socket);
                 send(new_socket, &fp, sizeof(fp), 0);
                 break;
             case 4:
@@ -124,7 +187,7 @@ int main(int argc, char const *argv[])
     } while (op != 4);
 
     close(new_socket);
-    
+
     // closing the listening socket
     shutdown(server_fd, SHUT_RDWR);
     return 0;
@@ -139,7 +202,6 @@ int getFileSize(FILE *fp)
     rewind(fp);
     return sz;
 }
-
 
 void insertContato(Contato c, FILE *fp)
 {
