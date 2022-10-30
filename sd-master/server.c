@@ -13,33 +13,33 @@
 
 sem_t x, y;
 pthread_t threads;
-pthread_t writerthreads[100];
-pthread_t readerthreads[100];
-int readercount = 0;
+pthread_t escritathreads[100];
+pthread_t leiturathreads[100];
+int escritacontador = 0;
 
 // função para ler
 void *reader(void *param)
 {
     // Lock the semaphore
     sem_wait(&x);
-    readercount++;
+    escritacontador++;
 
-    if (readercount == 1)
+    if (escritacontador == 1)
         sem_wait(&y);
 
     // Unlock the semaphore
     sem_post(&x);
 
     printf("\n%d reader is inside",
-           readercount);
+           escritacontador);
 
     sleep(5);
 
     // Lock the semaphore
     sem_wait(&x);
-    readercount--;
+    escritacontador--;
 
-    if (readercount == 0)
+    if (escritacontador == 0)
     {
         sem_post(&y);
     }
@@ -48,7 +48,7 @@ void *reader(void *param)
     sem_post(&x);
 
     printf("\n%d Reader is leaving",
-           readercount + 1);
+           escritacontador + 1);
     pthread_exit(NULL);
 }
 
@@ -157,7 +157,7 @@ int main(int argc, char const *argv[])
             switch (op)
             {
             case 1:
-                pthread_create(&readerthreads[i++], NULL,reader, &new_socket);
+                pthread_create(&leiturathreads[i++], NULL,reader, &new_socket);
                 valread = read(new_socket, &contato, sizeof(contato));
                 sz = getFileSize(fp);
                 if (sz == 0)
@@ -171,11 +171,11 @@ int main(int argc, char const *argv[])
                 }
                 break;
             case 2:
-                pthread_create(&readerthreads[i++], NULL,reader, &new_socket);
+                pthread_create(&leiturathreads[i++], NULL,reader, &new_socket);
                 send(new_socket, &fp, sizeof(fp), 0);
                 break;
             case 3:
-                pthread_create(&readerthreads[i++], NULL,reader, &new_socket);
+                pthread_create(&leiturathreads[i++], NULL,reader, &new_socket);
                 send(new_socket, &fp, sizeof(fp), 0);
                 break;
             case 4:
