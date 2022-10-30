@@ -9,65 +9,6 @@
 #include <semaphore.h>
 #include <pthread.h>
 
-// variaveis do semaforo
-
-sem_t x, y;
-pthread_t threads;
-pthread_t escritathreads[100];
-pthread_t leiturathreads[100];
-int escritacontador = 0;
-
-// função para ler
-void *reader(void *param)
-{
-    // Lock the semaphore
-    sem_wait(&x);
-    escritacontador++;
-
-    if (escritacontador == 1)
-        sem_wait(&y);
-
-    // Unlock the semaphore
-    sem_post(&x);
-
-    printf("\n%d reader is inside",
-           escritacontador);
-
-    sleep(5);
-
-    // Lock the semaphore
-    sem_wait(&x);
-    escritacontador--;
-
-    if (escritacontador == 0)
-    {
-        sem_post(&y);
-    }
-
-    // Lock the semaphore
-    sem_post(&x);
-
-    printf("\n%d Reader is leaving",
-           escritacontador + 1);
-    pthread_exit(NULL);
-}
-
-// função para escrever
-void *writer(void *param)
-{
-    printf("\nWriter is trying to enter");
-
-    // Lock the semaphore
-    sem_wait(&y);
-
-    printf("\nWriter has entered");
-
-    // Unlock the semaphore
-    sem_post(&y);
-
-    printf("\nWriter is leaving");
-    pthread_exit(NULL);
-}
 
 typedef struct cont
 {
@@ -88,7 +29,6 @@ int main(int argc, char const *argv[])
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
-    // char buffer[1024] = { 0 };
     char hello[1024];
     strcpy(hello, "Hello from server");
 
@@ -129,8 +69,7 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
-    pthread_t threads[100]; // array para as threads
-    int i=0;
+    
 
     /*ARQUIVO*/
     fp = fopen("dados.dat", "rb+");
@@ -157,7 +96,6 @@ int main(int argc, char const *argv[])
             switch (op)
             {
             case 1:
-                pthread_create(&leiturathreads[i++], NULL,reader, &new_socket);
                 valread = read(new_socket, &contato, sizeof(contato));
                 sz = getFileSize(fp);
                 if (sz == 0)
@@ -171,11 +109,9 @@ int main(int argc, char const *argv[])
                 }
                 break;
             case 2:
-                pthread_create(&leiturathreads[i++], NULL,reader, &new_socket);
                 send(new_socket, &fp, sizeof(fp), 0);
                 break;
             case 3:
-                pthread_create(&leiturathreads[i++], NULL,reader, &new_socket);
                 send(new_socket, &fp, sizeof(fp), 0);
                 break;
             case 4:
